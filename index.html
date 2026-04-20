@@ -1,99 +1,339 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Upcoming Releases</title>
   <style>
+    :root {
+      --blue:        #1a6bbf;
+      --blue-light:  #dbeafe;
+      --green:       #2e7d32;
+      --green-light: #e8f5e9;
+      --orange:      #c0392b;
+      --yellow-bg:   #fffde7;
+      --yellow-bd:   #f0e58c;
+      --active-bg:   #f0f7ff;
+      --active-bd:   #c5d8f0;
+      --border:      #e2e6ea;
+      --past-op:     0.42;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
     body {
       font-family: Arial, Helvetica, sans-serif;
-      margin: 8px 12px;
       font-size: 13px;
       color: #333;
-      background-color: #ffffff;
+      background: #fff;
+      padding: 10px 14px 12px;
     }
 
+    /* ── Summary cards ───────────────────────────────────────── */
+    #summary {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+    }
+
+    .card {
+      flex: 1;
+      min-width: 150px;
+      background: #f7f9fc;
+      border: 1px solid #d4dce8;
+      border-left: 4px solid var(--blue);
+      border-radius: 4px;
+      padding: 7px 10px;
+    }
+
+    .card.prod { border-left-color: var(--green); }
+    .card.urgent { border-left-color: var(--orange); }
+
+    .card .c-label {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: #777;
+    }
+
+    .card .c-value {
+      font-size: 13px;
+      font-weight: 700;
+      color: #1a1a1a;
+      margin-top: 2px;
+    }
+
+    .card .c-sub {
+      font-size: 11px;
+      color: #888;
+      margin-top: 1px;
+    }
+
+    .card.urgent .c-sub { color: var(--orange); font-weight: 600; }
+
+    /* ── Heading ─────────────────────────────────────────────── */
     h3 {
-      margin: 0 0 8px 0;
-      font-size: 14px;
-      font-weight: 600;
+      font-size: 13px;
+      font-weight: 700;
       color: #2c2c2c;
+      margin-bottom: 7px;
+      letter-spacing: 0.1px;
     }
 
+    /* ── Table ───────────────────────────────────────────────── */
     table {
       width: 100%;
       border-collapse: collapse;
-      background-color: #fff;
     }
 
-    th {
-      background-color: #f5f6f7; /* SysAid-like header */
-      font-weight: 600;
+    thead th {
+      background: #f2f4f7;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+      color: #555;
       text-align: left;
-      border-bottom: 1px solid #dcdcdc;
       padding: 6px 8px;
-      color: #444;
-    }
-
-    td {
-      border-bottom: 1px solid #ececec;
-      padding: 6px 8px;
-      color: #333;
+      border-bottom: 2px solid #cdd3dc;
       white-space: nowrap;
     }
 
-    tr:hover td {
-      background-color: #f9fbfd; /* subtle hover */
+    td {
+      padding: 6px 8px;
+      border-bottom: 1px solid var(--border);
+      white-space: nowrap;
+      vertical-align: top;
     }
 
-    .iteration {
-      font-weight: 600;
+    tbody tr:hover td { background: #f5f9ff; }
+
+    /* Row states */
+    tr.row-past td          { opacity: var(--past-op); }
+    tr.row-active           { background: var(--active-bg); }
+    tr.row-active td        { border-bottom-color: var(--active-bd); }
+    tr.row-next             { background: var(--yellow-bg); }
+    tr.row-next td          { border-bottom-color: var(--yellow-bd); }
+
+    /* Iteration cell */
+    .iter-cell {
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      line-height: 1.6;
     }
 
-    .uat {
-      color: #0b5ed7;   /* soft blue */
+    .badge {
+      font-size: 9px;
+      font-weight: 800;
+      padding: 1px 5px;
+      border-radius: 9px;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+      vertical-align: middle;
+      white-space: nowrap;
     }
 
-    .prod {
-      color: #2e7d32;   /* muted green */
-      font-weight: 600;
+    .b-uat  { background: var(--blue-light);  color: #1d4ed8; }
+    .b-next { background: #fef9c3;            color: #854d0e; }
+    .b-done { background: #f1f5f9;            color: #94a3b8; }
+
+    /* Date cells */
+    .d-main { line-height: 1.5; }
+    .d-uat  { color: var(--blue);  font-weight: 500; }
+    .d-prod { color: var(--green); font-weight: 700; }
+
+        .d-days {
+      font-size: 10px;
+      color: #999;
+	  line-height: 1.3;
     }
 
+    .d-days.soon  { color: var(--orange); font-weight: 700; }
+    .d-days.today { color: #8b00d4;       font-weight: 700; }
+
+    /* Divider before first future row when there's an active row */
+    tr.row-divider td {
+      padding: 0;
+      border-bottom: 2px dashed #d0dcea;
+      background: transparent;
+    }
+
+    /* ── Footer note ─────────────────────────────────────────── */
     .note {
-      margin-top: 6px;
+      margin-top: 8px;
       font-size: 11px;
-      color: #777;
+      color: #999;
     }
   </style>
 </head>
 <body>
 
-  <h3>Upcoming UAT and Production Releases</h3>
+  <div id="summary"></div>
+  <h3>Upcoming UAT &amp; Production Releases</h3>
 
   <table>
-    <tr>
-      <th>Iteration</th>
-      <th>UAT</th>
-      <th>Production</th>
-    </tr>
-
-    <tr><td class="iteration">2606</td><td class="uat">19‑Apr</td><td class="prod">3‑May</td></tr>
-    <tr><td class="iteration">2607</td><td class="uat">10‑May</td><td class="prod">24‑May</td></tr>
-    <tr><td class="iteration">2608</td><td class="uat">31‑May</td><td class="prod">14‑Jun</td></tr>
-    <tr><td class="iteration">2609</td><td class="uat">21‑Jun</td><td class="prod">5‑Jul</td></tr>
-    <tr><td class="iteration">2610</td><td class="uat">12‑Jul</td><td class="prod">26‑Jul</td></tr>
-    <tr><td class="iteration">2611</td><td class="uat">2‑Aug</td><td class="prod">16‑Aug</td></tr>
-    <tr><td class="iteration">2612</td><td class="uat">23‑Aug</td><td class="prod">6‑Sep</td></tr>
-    <tr><td class="iteration">2613</td><td class="uat">13‑Sep</td><td class="prod">27‑Sep</td></tr>
-    <tr><td class="iteration">2614</td><td class="uat">4‑Oct</td><td class="prod">18‑Oct</td></tr>
-    <tr><td class="iteration">2615</td><td class="uat">25‑Oct</td><td class="prod">8‑Nov</td></tr>
-    <tr><td class="iteration">2616</td><td class="uat">15‑Nov</td><td class="prod">29‑Nov</td></tr>
-    <tr><td class="iteration">2617</td><td class="uat">6‑Dec</td><td class="prod">20‑Dec</td></tr>
-    <tr><td class="iteration">2618</td><td class="uat">27‑Dec</td><td class="prod">10‑Jan</td></tr>
+    <thead>
+      <tr>
+        <th scope="col">Iteration</th>
+        <th scope="col">UAT</th>
+        <th scope="col">Production</th>
+      </tr>
+    </thead>
+    <tbody id="tbody"></tbody>
   </table>
 
-  <div class="note">
-    Dates are subject to change based on release readiness.
-  </div>
+  <div class="note">Dates are subject to change based on release readiness.</div>
+
+  <script>
+    const RELEASES = [
+      { iter: '2606', uat: '2026-04-19', prod: '2026-05-03' },
+      { iter: '2607', uat: '2026-05-10', prod: '2026-05-24' },
+      { iter: '2608', uat: '2026-05-31', prod: '2026-06-14' },
+      { iter: '2609', uat: '2026-06-21', prod: '2026-07-05' },
+      { iter: '2610', uat: '2026-07-12', prod: '2026-07-26' },
+      { iter: '2611', uat: '2026-08-02', prod: '2026-08-16' },
+      { iter: '2612', uat: '2026-08-23', prod: '2026-09-06' },
+      { iter: '2613', uat: '2026-09-13', prod: '2026-09-27' },
+      { iter: '2614', uat: '2026-10-04', prod: '2026-10-18' },
+      { iter: '2615', uat: '2026-10-25', prod: '2026-11-08' },
+      { iter: '2616', uat: '2026-11-15', prod: '2026-11-29' },
+      { iter: '2617', uat: '2026-12-06', prod: '2026-12-20' },
+      { iter: '2618', uat: '2026-12-27', prod: '2027-01-10' },
+    ];
+
+    const MON = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+    function today() {
+      const d = new Date();
+      d.setHours(0, 0, 0, 0);
+      return d;
+    }
+
+    function parseDate(iso) {
+      // Parse as local date to avoid UTC-offset shifting
+      const [y, m, d] = iso.split('-').map(Number);
+      return new Date(y, m - 1, d);
+    }
+
+    function fmt(iso) {
+      const d = parseDate(iso);
+      return `${d.getDate()}\u2011${MON[d.getMonth()]}`;
+    }
+
+    function daysAway(iso) {
+      return Math.round((parseDate(iso) - today()) / 86400000);
+    }
+
+    function daysLabel(n) {
+      if (n === 0)  return 'Today';
+      if (n === 1)  return 'Tomorrow';
+      if (n === -1) return 'Yesterday';
+      if (n < 0)    return `${Math.abs(n)}d ago`;
+      return `in ${n}d`;
+    }
+
+    function daysClass(n) {
+      if (n === 0)        return 'today';
+      if (n > 0 && n <= 7) return 'soon';
+      return '';
+    }
+
+    function dateCell(iso, cls) {
+      const n = daysAway(iso);
+      const dc = daysClass(n);
+      // Only show countdown for dates not too far in the past
+      const showDays = n >= -30;
+      return `
+        <td>
+          <div class="d-main ${cls}">${fmt(iso)}</div>
+          ${showDays ? `<div class="d-days ${dc}">${daysLabel(n)}</div>` : ''}
+        </td>`;
+    }
+
+    const tbody = document.getElementById('tbody');
+    let dividerInserted = false;
+    let nextUAT = null;
+    let nextProd = null;
+
+    RELEASES.forEach(r => {
+      const uatDays  = daysAway(r.uat);
+      const prodDays = daysAway(r.prod);
+
+      const isPast  = prodDays < 0;
+      const inUAT   = uatDays < 0 && prodDays >= 0;
+      const isNext  = uatDays >= 0;
+
+      // Track first future UAT and Prod for summary cards
+      if (uatDays >= 0 && !nextUAT)  nextUAT  = { ...r, days: uatDays };
+      if (prodDays >= 0 && !nextProd) nextProd = { ...r, days: prodDays };
+
+      // Insert a visual divider between past/active and future rows
+      if (!dividerInserted && !isPast) {
+        dividerInserted = true;
+        if (tbody.children.length > 0) {
+          const div = document.createElement('tr');
+          div.className = 'row-divider';
+          div.innerHTML = '<td colspan="3"></td>';
+          tbody.appendChild(div);
+        }
+      }
+
+      // Badge
+      let badge = '';
+      if (isPast)       badge = '<span class="badge b-done">Done</span>';
+      else if (inUAT)   badge = '<span class="badge b-uat">In UAT</span>';
+
+      // "Next" badge on the first future UAT row (set after loop)
+      const isNextFlag = isNext && !nextUAT._nextMarked;
+      if (isNext && !nextUAT._nextMarked) {
+        nextUAT._nextMarked = true;
+      }
+
+      const tr = document.createElement('tr');
+      if (isPast)      tr.className = 'row-past';
+      else if (inUAT)  tr.className = 'row-active';
+      else if (isNext && uatDays === (nextUAT ? nextUAT.days : -1)) tr.className = 'row-next';
+
+      tr.innerHTML = `
+        <td><div class="iter-cell">${r.iter}${badge}</div></td>
+        ${dateCell(r.uat,  'd-uat')}
+        ${dateCell(r.prod, 'd-prod')}
+      `;
+
+      // Store for next-badge pass
+      tr.dataset.iter = r.iter;
+      if (isNext && uatDays >= 0) tr.dataset.nextUat = 'true';
+
+      tbody.appendChild(tr);
+    });
+
+    // Add "Next" badge to first future-UAT row
+    const nextRow = tbody.querySelector('[data-next-uat="true"]');
+    if (nextRow) {
+      nextRow.className = 'row-next';
+      const iterCell = nextRow.querySelector('.iter-cell');
+      iterCell.innerHTML += '<span class="badge b-next">Next</span>';
+    }
+
+    // ── Summary cards ────────────────────────────────────────
+    function makeCard(label, iterNum, iso, days, extraClass) {
+      const urgent = days <= 7 ? ' urgent' : '';
+      return `
+        <div class="card ${extraClass}${urgent}">
+          <div class="c-label">${label}</div>
+          <div class="c-value">Iter ${iterNum} &mdash; ${fmt(iso)}</div>
+          <div class="c-sub">${daysLabel(days)}</div>
+        </div>`;
+    }
+
+    const summary = document.getElementById('summary');
+    if (nextUAT)  summary.innerHTML += makeCard('Next UAT',        nextUAT.iter,  nextUAT.uat,   nextUAT.days,  '');
+    if (nextProd) summary.innerHTML += makeCard('Next Production',  nextProd.iter, nextProd.prod, nextProd.days, 'prod');
+  </script>
 
 </body>
 </html>
