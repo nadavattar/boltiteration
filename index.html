@@ -16,7 +16,6 @@
       --active-bg:   #f0f7ff;
       --active-bd:   #c5d8f0;
       --border:      #e2e6ea;
-      --past-op:     0.42;
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -111,7 +110,6 @@
     tbody tr:hover td { background: #f5f9ff; }
 
     /* Row states */
-    tr.row-past td          { opacity: var(--past-op); }
     tr.row-active           { background: var(--active-bg); }
     tr.row-active td        { border-bottom-color: var(--active-bd); }
     tr.row-next             { background: var(--yellow-bg); }
@@ -139,28 +137,20 @@
 
     .b-uat  { background: var(--blue-light);  color: #1d4ed8; }
     .b-next { background: #fef9c3;            color: #854d0e; }
-    .b-done { background: #f1f5f9;            color: #94a3b8; }
 
     /* Date cells */
     .d-main { line-height: 1.5; }
     .d-uat  { color: var(--blue);  font-weight: 500; }
     .d-prod { color: var(--green); font-weight: 700; }
 
-        .d-days {
+    .d-days {
       font-size: 10px;
       color: #999;
-	  line-height: 1.3;
+      line-height: 1.3;
     }
 
     .d-days.soon  { color: var(--orange); font-weight: 700; }
     .d-days.today { color: #8b00d4;       font-weight: 700; }
-
-    /* Divider before first future row when there's an active row */
-    tr.row-divider td {
-      padding: 0;
-      border-bottom: 2px dashed #d0dcea;
-      background: transparent;
-    }
 
     /* ── Footer note ─────────────────────────────────────────── */
     .note {
@@ -254,49 +244,29 @@
         </td>`;
     }
 
-    const tbody = document.getElementById('tbody');
-    let dividerInserted = false;
-    let nextUAT = null;
-    let nextProd = null;
+    // Only show current iteration + 2 ahead; hide past and far-future rows
+    const startIdx = RELEASES.findIndex(r => daysAway(r.prod) >= 0);
+    const visible  = startIdx === -1 ? [] : RELEASES.slice(startIdx, startIdx + 3);
 
+    // Summary cards use full list to find next UAT/Prod
+    let nextUAT = null, nextProd = null;
     RELEASES.forEach(r => {
+      if (daysAway(r.uat) >= 0 && !nextUAT)  nextUAT  = { ...r, days: daysAway(r.uat) };
+      if (daysAway(r.prod) >= 0 && !nextProd) nextProd = { ...r, days: daysAway(r.prod) };
+    });
+
+    const tbody = document.getElementById('tbody');
+
+    visible.forEach(r => {
       const uatDays  = daysAway(r.uat);
       const prodDays = daysAway(r.prod);
+      const inUAT    = uatDays < 0 && prodDays >= 0;
 
-      const isPast  = prodDays < 0;
-      const inUAT   = uatDays < 0 && prodDays >= 0;
-      const isNext  = uatDays >= 0;
-
-      // Track first future UAT and Prod for summary cards
-      if (uatDays >= 0 && !nextUAT)  nextUAT  = { ...r, days: uatDays };
-      if (prodDays >= 0 && !nextProd) nextProd = { ...r, days: prodDays };
-
-      // Insert a visual divider between past/active and future rows
-      if (!dividerInserted && !isPast) {
-        dividerInserted = true;
-        if (tbody.children.length > 0) {
-          const div = document.createElement('tr');
-          div.className = 'row-divider';
-          div.innerHTML = '<td colspan="3"></td>';
-          tbody.appendChild(div);
-        }
-      }
-
-      // Badge
-      let badge = '';
-      if (isPast)       badge = '<span class="badge b-done">Done</span>';
-      else if (inUAT)   badge = '<span class="badge b-uat">In UAT</span>';
-
-      // "Next" badge on the first future UAT row (set after loop)
-      const isNextFlag = isNext && !nextUAT._nextMarked;
-      if (isNext && !nextUAT._nextMarked) {
-        nextUAT._nextMarked = true;
-      }
+      const badge = inUAT ? '<span class="badge b-uat">In UAT</span>' : '';
 
       const tr = document.createElement('tr');
-      if (isPast)      tr.className = 'row-past';
-      else if (inUAT)  tr.className = 'row-active';
-      else if (isNext && uatDays === (nextUAT ? nextUAT.days : -1)) tr.className = 'row-next';
+      tr.className = inUAT ? 'row-active' : '';
+      if (uatDays >= 0) tr.dataset.nextUat = 'true';
 
       tr.innerHTML = `
         <td><div class="iter-cell">${r.iter}${badge}</div></td>
@@ -304,19 +274,14 @@
         ${dateCell(r.prod, 'd-prod')}
       `;
 
-      // Store for next-badge pass
-      tr.dataset.iter = r.iter;
-      if (isNext && uatDays >= 0) tr.dataset.nextUat = 'true';
-
       tbody.appendChild(tr);
     });
 
-    // Add "Next" badge to first future-UAT row
+    // Add "Next" badge to first row with a future UAT date
     const nextRow = tbody.querySelector('[data-next-uat="true"]');
     if (nextRow) {
       nextRow.className = 'row-next';
-      const iterCell = nextRow.querySelector('.iter-cell');
-      iterCell.innerHTML += '<span class="badge b-next">Next</span>';
+      nextRow.querySelector('.iter-cell').innerHTML += '<span class="badge b-next">Next</span>';
     }
 
     // ── Summary cards ────────────────────────────────────────
